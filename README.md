@@ -1,40 +1,40 @@
 # Lift That Sh
 
-Aplicação full-stack de tracking de treinos de musculação. Permite consultar um
-catálogo de exercícios, montar rotinas de treino, registrar séries em tempo
-real durante a sessão (peso, repetições e tipo de série) e acompanhar o
-histórico e a evolução de carga por exercício.
+Full-stack workout tracking application for weight training. It lets you
+browse a catalog of exercises, build workout routines, log sets in real time
+during a session (weight, reps, and set type), and track history and load
+progression per exercise.
 
-O projeto segue o formato **API client**: backend API-only servindo JSON e
-frontend SPA que consome a API via REST.
+The project follows the **API client** format: an API-only backend serving
+JSON and an SPA frontend that consumes the API via REST.
 
-## Funcionalidades
+## Features
 
-- Registro, login e logout com JWT (revogação de token no servidor)
-- Catálogo de exercícios com busca e filtros por grupo muscular, equipamento e categoria
-- CRUD de treinos com adição, remoção e reordenação de exercícios, com metas de séries e repetições
-- Sessões de treino a partir de uma rotina ou livres, com registro de séries em tempo real
-- Oito tipos de série: aquecimento, normal, drop set, super set, falha, rest-pause, negativa e pirâmide
-- Duplicação da última série com um toque
-- Timer de descanso configurável (30s a 5min) com início automático a cada série registrada
-- Cálculo de volume total da sessão (Σ peso × repetições, excluindo aquecimento)
-- Histórico de sessões e gráfico de evolução de carga por exercício, com recorde pessoal (PR)
-- Painel administrativo para gestão de usuários e do catálogo de exercícios
-- Notificações de sucesso e erro via toasts, com estados de loading e empty em todas as telas
-- Interface dark, mobile-first, pensada para uso na academia
+- Registration, login, and logout with JWT (server-side token revocation)
+- Exercise catalog with search and filters by muscle group, equipment, and category
+- Workout CRUD with adding, removing, and reordering exercises, including set and rep targets
+- Workout sessions started from a routine or freestyle, with real-time set logging
+- Eight set types: warmup, normal, drop set, super set, failure, rest-pause, negative, and pyramid
+- One-tap duplication of the last set
+- Configurable rest timer (30s to 5min) that starts automatically after each logged set
+- Total session volume calculation (Σ weight × reps, excluding warmup sets)
+- Session history and load progression chart per exercise, with personal record (PR) tracking
+- Admin panel for managing users and the exercise catalog
+- Success and error notifications via toasts, with loading and empty states on every screen
+- Dark, mobile-first interface designed for use at the gym
 
 ## Stack
 
-| Camada        | Tecnologias                                                                 |
-| ------------- | --------------------------------------------------------------------------- |
-| Backend       | Ruby on Rails 8 (API-only), PostgreSQL 16, Puma                              |
-| Autenticação  | Devise + devise-jwt (revogação via `jti`)                                    |
-| Serialização  | Serializers manuais (`app/serializers`)                                      |
-| Frontend      | React 18, Vite, TypeScript, React Router, TanStack Query                     |
-| UI            | Tailwind CSS, shadcn/ui, Recharts, sonner (toasts), lucide-react (ícones)    |
-| Infraestrutura| Docker + Docker Compose (`db`, `api`, `web`)                                 |
+| Layer          | Technologies                                                                 |
+| -------------- | ----------------------------------------------------------------------------- |
+| Backend        | Ruby on Rails 8 (API-only), PostgreSQL 16, Puma                               |
+| Authentication | Devise + devise-jwt (revocation via `jti`)                                    |
+| Serialization  | Manual serializers (`app/serializers`)                                        |
+| Frontend       | React 18, Vite, TypeScript, React Router, TanStack Query                      |
+| UI             | Tailwind CSS, shadcn/ui, Recharts, sonner (toasts), lucide-react (icons)      |
+| Infrastructure | Docker + Docker Compose (`db`, `api`, `web`)                                  |
 
-## Arquitetura
+## Architecture
 
 ```
 ┌─────────────┐      REST/JSON       ┌─────────────┐       SQL        ┌────────────┐
@@ -44,136 +44,136 @@ frontend SPA que consome a API via REST.
 └─────────────┘                      └─────────────┘                  └────────────┘
 ```
 
-- CORS habilitado via `rack-cors`, restrito às origens configuradas
-- Todas as rotas de treino e sessão são escopadas pelo usuário autenticado
-- Rotas administrativas exigem usuário com perfil de administrador
+- CORS enabled via `rack-cors`, restricted to the configured origins
+- All workout and session routes are scoped to the authenticated user
+- Admin routes require a user with an admin profile
 
-## Como executar
+## How to run it
 
-### Pré-requisitos
+### Prerequisites
 
-- Docker com o plugin Compose
+- Docker with the Compose plugin
 
-### Subindo o ambiente
+### Starting the environment
 
 ```bash
 cp .env.example .env
 docker compose up --build
 ```
 
-Na inicialização, a API executa automaticamente `db:prepare` (criação do banco
-e migrations) e `db:seed` (catálogo com cerca de 40 exercícios e o usuário
-administrador).
+On startup, the API automatically runs `db:prepare` (database creation and
+migrations) and `db:seed` (a catalog of about 40 exercises plus the admin
+user).
 
-| Serviço  | URL                                        |
+| Service  | URL                                        |
 | -------- | ------------------------------------------ |
 | Frontend | http://localhost:5173                      |
 | API      | http://localhost:3000 (healthcheck: `/up`) |
 
-### Usuário administrador
+### Admin user
 
-Criado pelo seed com as credenciais definidas em `ADMIN_EMAIL` e
-`ADMIN_PASSWORD` (padrão: `admin@liftthatsh.com` / `admin123`). O painel fica
-disponível em `/admin`, acessível pelo ícone de escudo no cabeçalho.
+Created by the seed with the credentials defined in `ADMIN_EMAIL` and
+`ADMIN_PASSWORD` (default: `admin@liftthatsh.com` / `admin123`). The panel is
+available at `/admin`, accessible via the shield icon in the header.
 
-## Variáveis de ambiente
+## Environment variables
 
-Definidas no arquivo `.env` (ver `.env.example`).
+Defined in the `.env` file (see `.env.example`).
 
-| Variável          | Descrição                                            | Padrão                                                            |
-| ----------------- | ---------------------------------------------------- | ----------------------------------------------------------------- |
-| `POSTGRES_USER`   | Usuário do PostgreSQL                                | `postgres`                                                        |
-| `POSTGRES_PASSWORD` | Senha do PostgreSQL                                | `postgres`                                                        |
-| `POSTGRES_DB`     | Nome do banco de dados                               | `lift_that_sh_development`                                        |
-| `DATABASE_URL`    | String de conexão usada pelo Rails                   | `postgres://postgres:postgres@db:5432/lift_that_sh_development`   |
-| `JWT_SECRET`      | Segredo de assinatura dos tokens JWT                 | —                                                                 |
-| `SECRET_KEY_BASE` | Secret key base do Rails                             | —                                                                 |
-| `CORS_ORIGINS`    | Origens permitidas no CORS (separadas por vírgula)   | `http://localhost:5173`                                           |
-| `VITE_API_URL`    | URL da API consumida pelo frontend                   | `http://localhost:3000`                                           |
-| `ADMIN_EMAIL`     | Email do administrador criado no seed                | `admin@liftthatsh.com`                                            |
-| `ADMIN_PASSWORD`  | Senha do administrador criado no seed                | `admin123`                                                        |
+| Variable            | Description                                          | Default                                                            |
+| ------------------- | ----------------------------------------------------- | ------------------------------------------------------------------ |
+| `POSTGRES_USER`     | PostgreSQL user                                       | `postgres`                                                         |
+| `POSTGRES_PASSWORD` | PostgreSQL password                                   | `postgres`                                                         |
+| `POSTGRES_DB`       | Database name                                          | `lift_that_sh_development`                                         |
+| `DATABASE_URL`      | Connection string used by Rails                        | `postgres://postgres:postgres@db:5432/lift_that_sh_development`    |
+| `JWT_SECRET`        | JWT signing secret                                      | —                                                                  |
+| `SECRET_KEY_BASE`   | Rails secret key base                                   | —                                                                  |
+| `CORS_ORIGINS`      | Allowed CORS origins (comma-separated)                  | `http://localhost:5173`                                            |
+| `VITE_API_URL`      | API URL consumed by the frontend                        | `http://localhost:3000`                                            |
+| `ADMIN_EMAIL`       | Admin email created by the seed                         | `admin@liftthatsh.com`                                             |
+| `ADMIN_PASSWORD`    | Admin password created by the seed                      | `admin123`                                                         |
 
-> Em produção, defina valores próprios para `JWT_SECRET`, `SECRET_KEY_BASE` e
-> as credenciais do administrador.
+> In production, set your own values for `JWT_SECRET`, `SECRET_KEY_BASE`, and
+> the admin credentials.
 
 ## API
 
-Autenticação via header `Authorization: Bearer <token>`.
+Authentication via the `Authorization: Bearer <token>` header.
 
-### Autenticação
+### Authentication
 
-| Método   | Rota             | Descrição                                      |
-| -------- | ---------------- | ---------------------------------------------- |
-| `POST`   | `/auth/register` | Cria conta — `{ user: { name, email, password } }` |
-| `POST`   | `/auth/login`    | Autentica — `{ user: { email, password } }`    |
-| `DELETE` | `/auth/logout`   | Revoga o token atual                           |
-| `GET`    | `/me`            | Dados do usuário autenticado                   |
+| Method   | Route             | Description                                     |
+| -------- | ----------------- | ------------------------------------------------ |
+| `POST`   | `/auth/register`  | Creates an account — `{ user: { name, email, password } }` |
+| `POST`   | `/auth/login`     | Authenticates — `{ user: { email, password } }` |
+| `DELETE` | `/auth/logout`    | Revokes the current token                        |
+| `GET`    | `/me`             | Authenticated user's data                        |
 
-### Exercícios
+### Exercises
 
-| Método | Rota                       | Descrição                                                    |
-| ------ | -------------------------- | ------------------------------------------------------------ |
-| `GET`  | `/exercises`               | Lista com filtros `muscle_group`, `equipment`, `category`, `q` |
-| `GET`  | `/exercises/:id`           | Detalhe do exercício                                          |
-| `GET`  | `/exercises/:id/progress`  | Evolução de carga (carga máxima e volume por data)            |
+| Method | Route                       | Description                                                       |
+| ------ | --------------------------- | ------------------------------------------------------------------- |
+| `GET`  | `/exercises`                | List with `muscle_group`, `equipment`, `category`, `q` filters       |
+| `GET`  | `/exercises/:id`            | Exercise detail                                                     |
+| `GET`  | `/exercises/:id/progress`   | Load progression (max load and volume by date)                     |
 
-### Treinos
+### Workouts
 
-| Método   | Rota                       | Descrição                                                        |
-| -------- | -------------------------- | ---------------------------------------------------------------- |
-| `GET`    | `/workouts`                | Lista os treinos do usuário                                       |
-| `POST`   | `/workouts`                | Cria treino — `{ name, description, notes }`                      |
-| `GET`    | `/workouts/:id`            | Detalhe com exercícios ordenados                                  |
-| `PATCH`  | `/workouts/:id`            | Atualiza treino                                                   |
-| `DELETE` | `/workouts/:id`            | Remove treino (sessões realizadas são preservadas)                |
-| `POST`   | `/workouts/:id/exercises`  | Substitui a lista de exercícios (adição, remoção e reordenação)   |
+| Method   | Route                      | Description                                                        |
+| -------- | -------------------------- | -------------------------------------------------------------------- |
+| `GET`    | `/workouts`                | Lists the user's workouts                                             |
+| `POST`   | `/workouts`                | Creates a workout — `{ name, description, notes }`                    |
+| `GET`    | `/workouts/:id`            | Detail with ordered exercises                                         |
+| `PATCH`  | `/workouts/:id`            | Updates the workout                                                   |
+| `DELETE` | `/workouts/:id`            | Removes the workout (completed sessions are preserved)                |
+| `POST`   | `/workouts/:id/exercises`  | Replaces the exercise list (add, remove, and reorder)                 |
 
-### Sessões e séries
+### Sessions and sets
 
-| Método   | Rota                       | Descrição                                                        |
-| -------- | -------------------------- | ---------------------------------------------------------------- |
-| `POST`   | `/sessions`                | Inicia sessão — `{ workout_id }` opcional (copia os exercícios)   |
-| `GET`    | `/sessions`                | Histórico de sessões                                              |
-| `GET`    | `/sessions/:id`            | Detalhe com exercícios e séries                                   |
-| `PATCH`  | `/sessions/:id`            | Finaliza — `{ status: "completed", duration_seconds, notes }`     |
-| `POST`   | `/sessions/:id/exercises`  | Adiciona exercício à sessão — `{ exercise_id }`                   |
-| `POST`   | `/sessions/:id/set_logs`   | Registra série — `{ session_exercise_id, weight, reps, set_type, rpe }` |
-| `PATCH`  | `/set_logs/:id`            | Atualiza série                                                    |
-| `DELETE` | `/set_logs/:id`            | Remove série                                                      |
+| Method   | Route                      | Description                                                          |
+| -------- | -------------------------- | ----------------------------------------------------------------------|
+| `POST`   | `/sessions`                | Starts a session — `{ workout_id }` optional (copies the exercises)   |
+| `GET`    | `/sessions`                | Session history                                                       |
+| `GET`    | `/sessions/:id`            | Detail with exercises and sets                                        |
+| `PATCH`  | `/sessions/:id`            | Finishes — `{ status: "completed", duration_seconds, notes }`         |
+| `POST`   | `/sessions/:id/exercises`  | Adds an exercise to the session — `{ exercise_id }`                   |
+| `POST`   | `/sessions/:id/set_logs`   | Logs a set — `{ session_exercise_id, weight, reps, set_type, rpe }`   |
+| `PATCH`  | `/set_logs/:id`            | Updates a set                                                          |
+| `DELETE` | `/set_logs/:id`            | Removes a set                                                          |
 
-Valores aceitos em `set_type`: `warmup`, `normal`, `drop_set`, `super_set`,
+Accepted values for `set_type`: `warmup`, `normal`, `drop_set`, `super_set`,
 `failure`, `rest_pause`, `negative`, `pyramid`.
 
-### Administração (requer perfil admin)
+### Administration (requires admin profile)
 
-| Método   | Rota                      | Descrição                                                          |
-| -------- | ------------------------- | ------------------------------------------------------------------ |
-| `GET`    | `/admin/users`            | Lista usuários                                                      |
-| `POST`   | `/admin/users`            | Cria usuário — `{ name, email, password, admin }`                   |
-| `PATCH`  | `/admin/users/:id`        | Atualiza usuário (senha opcional)                                   |
-| `DELETE` | `/admin/users/:id`        | Remove usuário (auto-exclusão bloqueada)                            |
-| `GET`    | `/admin/exercises`        | Lista o catálogo com contagem de uso em treinos                     |
-| `POST`   | `/admin/exercises`        | Cria exercício                                                      |
-| `PATCH`  | `/admin/exercises/:id`    | Atualiza exercício                                                  |
-| `DELETE` | `/admin/exercises/:id`    | Remove exercício; treinos que o usavam são mantidos sem o vínculo   |
+| Method   | Route                     | Description                                                          |
+| -------- | ------------------------- | ------------------------------------------------------------------- |
+| `GET`    | `/admin/users`            | Lists users                                                          |
+| `POST`   | `/admin/users`            | Creates a user — `{ name, email, password, admin }`                  |
+| `PATCH`  | `/admin/users/:id`        | Updates a user (password optional)                                   |
+| `DELETE` | `/admin/users/:id`        | Removes a user (self-deletion blocked)                                |
+| `GET`    | `/admin/exercises`        | Lists the catalog with usage count in workouts                        |
+| `POST`   | `/admin/exercises`        | Creates an exercise                                                   |
+| `PATCH`  | `/admin/exercises/:id`    | Updates an exercise                                                   |
+| `DELETE` | `/admin/exercises/:id`    | Removes an exercise; workouts that used it keep the record without the link |
 
-## Modelo de dados
+## Data model
 
-| Entidade          | Papel                                                              |
-| ----------------- | ------------------------------------------------------------------ |
-| `User`            | Conta de acesso; flag `admin` controla o painel administrativo      |
-| `Exercise`        | Catálogo global: grupo muscular, equipamento e categoria            |
-| `Workout`         | Rotina de treino do usuário                                         |
-| `WorkoutExercise` | Exercício dentro de um treino, com posição e metas de séries/reps   |
-| `WorkoutSession`  | Execução real de um treino (status, duração, data)                  |
-| `SessionExercise` | Exercício dentro de uma sessão                                      |
-| `SetLog`          | Série registrada: peso, repetições, tipo, RPE e descanso            |
+| Entity            | Role                                                                |
+| ------------------ | -------------------------------------------------------------------- |
+| `User`             | Access account; the `admin` flag controls access to the admin panel  |
+| `Exercise`         | Global catalog: muscle group, equipment, and category                |
+| `Workout`          | User's workout routine                                               |
+| `WorkoutExercise`  | Exercise within a workout, with position and set/rep targets         |
+| `WorkoutSession`   | Actual execution of a workout (status, duration, date)               |
+| `SessionExercise`  | Exercise within a session                                            |
+| `SetLog`           | Logged set: weight, reps, type, RPE, and rest time                   |
 
-Todas as chaves estrangeiras são indexadas. A exclusão de um treino não afeta
-o histórico (`workout_id` da sessão é anulado) e a exclusão de um exercício do
-catálogo preserva os treinos, removendo apenas o vínculo.
+All foreign keys are indexed. Deleting a workout does not affect history
+(the session's `workout_id` is nulled), and deleting an exercise from the
+catalog preserves the workouts, removing only the link.
 
-## Estrutura do projeto
+## Project structure
 
 ```
 lift-that-sh/
@@ -181,50 +181,50 @@ lift-that-sh/
 ├── .env.example
 ├── api/                    # Rails API-only
 │   ├── app/
-│   │   ├── controllers/    # REST + namespace admin + Devise customizado
+│   │   ├── controllers/    # REST + admin namespace + custom Devise
 │   │   ├── models/
 │   │   └── serializers/
-│   ├── config/             # rotas, CORS, Devise, locales
-│   └── db/                 # migrations e seeds
+│   ├── config/             # routes, CORS, Devise, locales
+│   └── db/                 # migrations and seeds
 └── web/                    # React + Vite + TypeScript
     └── src/
-        ├── components/     # componentes do app + ui (shadcn/ui)
-        ├── context/        # autenticação
+        ├── components/     # app components + ui (shadcn/ui)
+        ├── context/        # authentication
         ├── hooks/          # TanStack Query
-        ├── lib/            # utilitários e constantes
+        ├── lib/            # utilities and constants
         ├── pages/
-        └── services/       # cliente HTTP e tipos da API
+        └── services/       # HTTP client and API types
 ```
 
-## Comandos úteis
+## Useful commands
 
 ```bash
-# Console do Rails
+# Rails console
 docker compose exec api bundle exec rails console
 
-# Status das migrations
+# Migration status
 docker compose exec api bundle exec rails db:migrate:status
 
-# Verificação de tipos do frontend
+# Frontend type checking
 docker compose exec web npx tsc --noEmit
 
-# Logs de um serviço
+# Logs for a service
 docker compose logs -f api
 
-# Recriar o banco do zero
+# Recreate the database from scratch
 docker compose down -v && docker compose up --build
 ```
 
 ## Design system
 
-Tema dark por padrão, com tokens definidos em `web/tailwind.config.ts` e
-`web/src/index.css` seguindo a regra 60/30/10:
+Dark theme by default, with tokens defined in `web/tailwind.config.ts` and
+`web/src/index.css` following the 60/30/10 rule:
 
-| Proporção | Papel                          | Cor                                  |
-| --------- | ------------------------------ | ------------------------------------ |
-| 60%       | Fundo, cards e bordas          | Azul marinho `#0B1E3B`               |
-| 30%       | Texto e elementos secundários  | Branco `#E5EEF7` / Azul claro `#38BDF8` |
-| 10%       | CTAs, PRs e destaques          | Amarelo `#FACC15`                    |
+| Proportion | Role                            | Color                                 |
+| ---------- | -------------------------------- | -------------------------------------- |
+| 60%        | Background, cards, and borders   | Navy blue `#0B1E3B`                    |
+| 30%        | Text and secondary elements      | White `#E5EEF7` / Light blue `#38BDF8` |
+| 10%        | CTAs, PRs, and highlights        | Yellow `#FACC15`                       |
 
-Tipografia condensada (Oswald) nos títulos, layout mobile-first com navegação
-inferior e badges coloridos por tipo de série.
+Condensed typography (Oswald) for headings, mobile-first layout with bottom
+navigation, and color-coded badges by set type.
