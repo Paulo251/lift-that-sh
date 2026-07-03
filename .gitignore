@@ -1,0 +1,10 @@
+.env
+
+# Rails
+api/log/*
+api/tmp/*
+api/Gemfile.lock
+
+# Node
+web/node_modules/
+web/dist/

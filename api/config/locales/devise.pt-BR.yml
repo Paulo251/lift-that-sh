@@ -1,0 +1,17 @@
+pt-BR:
+  devise:
+    failure:
+      already_authenticated: "Você já está logado."
+      inactive: "Sua conta ainda não foi ativada."
+      invalid: "Email ou senha inválidos."
+      locked: "Sua conta está bloqueada."
+      last_attempt: "Você tem mais uma tentativa antes da conta ser bloqueada."
+      not_found_in_database: "Email ou senha inválidos."
+      timeout: "Sua sessão expirou. Entre novamente para continuar."
+      unauthenticated: "Você precisa entrar antes de continuar."
+      unconfirmed: "Você precisa confirmar sua conta antes de continuar."
+    registrations:
+      signed_up: "Bem-vindo! Cadastro realizado com sucesso."
+    sessions:
+      signed_in: "Login realizado com sucesso."
+      signed_out: "Logout realizado com sucesso."
