@@ -1,0 +1,32 @@
+import { DEFAULT_CATALOG_VERSION, DEFAULT_EXERCISES } from '../data/defaultExercises'
+import { parseCatalog, parseWorkout, serializeCatalog, serializeWorkout } from '../domain/markdown'
+import type { ExerciseCatalog, VaultIndex, WorkoutDocument } from '../domain/models'
+import type { VaultFileSystem, VaultRepository } from './types'
+import { VaultConflictError } from './types'
+
+const clean=(x:string)=>x.replace(/\/+$/,'')
+const safe=(x:string)=>x.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'').slice(0,50)||'treino'
+const stamp=()=>new Date().toISOString().replace(/[:.]/g,'-')
+export class MarkdownVaultRepository implements VaultRepository {
+ private root=''; private index:VaultIndex|null=null; private revisions=new Map<string,string>(); private workoutPaths=new Map<string,string>(); private listeners=new Set<(x:VaultIndex)=>void>(); private queue=Promise.resolve()
+ constructor(private fs:VaultFileSystem){}
+ private path(p:string){return `${this.root}/${p}`}
+ private async ensure(){for(const p of ['workouts','.trash','.lts/backups'])await this.fs.mkdir(this.path(p)); const cat=this.path('exercises.md');if(!(await this.fs.stat(cat)).exists){const value:ExerciseCatalog={schema_version:1,default_catalog_version:DEFAULT_CATALOG_VERSION,updated_at:new Date().toISOString(),exercises:DEFAULT_EXERCISES,body:'\n# Catálogo de exercícios\n\nEdite os metadados acima com cuidado.\n'};await this.fs.write(cat,serializeCatalog(value))}}
+ async open(uri:string){this.root=clean(uri);this.fs.setRoot?.(this.root);await this.ensure();return this.reindex()}
+ private remember(path:string,content:string){this.revisions.set(path,content)}
+ async reindex(){if(!this.root)throw new Error('Vault não aberto');const invalid:VaultIndex['invalid']=[];let catalog:ExerciseCatalog;const cp=this.path('exercises.md');const cs=await this.fs.read(cp);try{catalog=parseCatalog(cs);this.remember(cp,cs)}catch(e){throw new Error(`exercises.md inválido: ${e instanceof Error?e.message:e}`)}const workouts:WorkoutDocument[]=[];this.workoutPaths.clear();for(const name of await this.fs.list(this.path('workouts'))){if(!name.endsWith('.md')||name.includes('.conflict-'))continue;const p=this.path(`workouts/${name}`);try{const raw=await this.fs.read(p),workout=parseWorkout(raw);if(this.workoutPaths.has(workout.id))throw new Error(`UUID de treino duplicado: ${workout.id}`);workouts.push(workout);this.workoutPaths.set(workout.id,p);this.remember(p,raw)}catch(e){invalid.push({uri:p,message:e instanceof Error?e.message:String(e)})}}this.index={catalog,workouts:workouts.sort((a,b)=>b.updated_at.localeCompare(a.updated_at)),invalid,indexedAt:new Date().toISOString()};this.listeners.forEach(x=>x(this.index!));return this.index}
+ private locate(id:string){const path=this.workoutPaths.get(id);if(!path)throw new Error('Treino não encontrado');return path}
+ async readWorkout(id:string){return parseWorkout(await this.fs.read(this.locate(id)))}
+ async createWorkout(w:WorkoutDocument){return this.serial(async()=>{const p=this.path(`workouts/${safe(w.name)}--${w.id.replace(/-/g,'').slice(0,8)}.md`);if((await this.fs.stat(p)).exists)throw new Error('Treino já existe');const raw=serializeWorkout(w);await this.fs.write(p,raw);this.remember(p,raw);await this.reindex()})}
+ async updateWorkout(w:WorkoutDocument){return this.serial(async()=>{const old=this.locate(w.id), next=this.path(`workouts/${safe(w.name)}--${w.id.replace(/-/g,'').slice(0,8)}.md`), raw=serializeWorkout({...w,updated_at:new Date().toISOString()});await this.guardedWrite(old,raw);if(old!==next){await this.fs.move(old,next);this.revisions.set(next,raw);this.revisions.delete(old)}await this.reindex()})}
+ async trashWorkout(id:string){return this.serial(async()=>{const p=this.locate(id);await this.createBackup(p);await this.fs.move(p,this.path(`.trash/${p.split('/').pop()!.replace(/\.md$/,`--deleted-${stamp()}.md`)}`));await this.reindex()})}
+ async readCatalog(){if(!this.index)throw new Error('Vault não aberto');return this.index.catalog}
+ async updateCatalog(c:ExerciseCatalog){return this.serial(async()=>{const p=this.path('exercises.md');await this.guardedWrite(p,serializeCatalog({...c,updated_at:new Date().toISOString()}));await this.reindex()})}
+ async missingDefaultExercises(){const catalog=await this.readCatalog();const ids=new Set(catalog.exercises.map(x=>x.id));return DEFAULT_EXERCISES.filter(x=>!ids.has(x.id)).length}
+ async importMissingDefaultExercises(){return this.serial(async()=>{const p=this.path('exercises.md'),raw=await this.fs.read(p);if(this.revisions.get(p)!==raw){const conflict=await this.createConflict(p,raw);throw new VaultConflictError(conflict)}const catalog=parseCatalog(raw),ids=new Set(catalog.exercises.map(x=>x.id)),missing=DEFAULT_EXERCISES.filter(x=>!ids.has(x.id));if(!missing.length){if(catalog.default_catalog_version!==DEFAULT_CATALOG_VERSION){await this.guardedWrite(p,serializeCatalog({...catalog,default_catalog_version:DEFAULT_CATALOG_VERSION,updated_at:new Date().toISOString()}));await this.reindex()}return 0}const next={...catalog,default_catalog_version:DEFAULT_CATALOG_VERSION,updated_at:new Date().toISOString(),exercises:[...catalog.exercises,...missing.map(x=>structuredClone(x))]};await this.guardedWrite(p,serializeCatalog(next));await this.reindex();return missing.length})}
+ async createBackup(path:string){const raw=await this.fs.read(path),name=path.split('/').pop()!;const dir=this.path(`.lts/backups/${name}`);await this.fs.mkdir(dir);const files=(await this.fs.list(dir)).sort();await this.fs.write(`${dir}/${stamp()}.md`,raw);for(const old of files.slice(0,Math.max(0,files.length-9)))await this.fs.move(`${dir}/${old}`,`${this.path('.trash')}/backup-${stamp()}-${old}`)}
+ async createConflict(path:string,content:string){const target=path.replace(/\.md$/,`.conflict-${stamp()}.md`);await this.fs.write(target,content);return target}
+ private async guardedWrite(path:string,pending:string){const current=await this.fs.read(path);if(this.revisions.get(path)!==current){const conflict=await this.createConflict(path,pending);throw new VaultConflictError(conflict)}await this.createBackup(path);await this.fs.write(path,pending);this.remember(path,pending)}
+ private serial<T>(job:()=>Promise<T>){const result=this.queue.then(job,job);this.queue=result.then(()=>undefined,()=>undefined);return result}
+ subscribe(listener:(x:VaultIndex)=>void){this.listeners.add(listener);return()=>this.listeners.delete(listener)}
+}

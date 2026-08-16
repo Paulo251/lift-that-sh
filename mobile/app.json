@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Lift That Sh",
+    "slug": "lift-that-sh",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "liftthatsh",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "plugins": [
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "sounds": []
+        }
+      ],
+      "expo-status-bar"
+    ],
+    "updates": {
+      "enabled": false
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "android": {
+      "package": "com.liftthatsh.mobile",
+      "permissions": [
+        "VIBRATE"
+      ],
+      "blockedPermissions": [
+        "android.permission.INTERNET"
+      ]
+    },
+    "extra": {
+      "router": {}
+    }
+  }
+}
